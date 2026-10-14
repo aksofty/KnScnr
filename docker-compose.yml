@@ -1,0 +1,23 @@
+services:
+  kinoscaner:
+    build:
+      context: .
+    image: kinoscaner:latest
+    container_name: kinoscaner
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_URL: sqlite+aiosqlite:////app/data/tenkino.db
+      LOG_FILE: /app/data/app.log
+      LOG_STDOUT: "1"
+    volumes:
+      - kinoscaner_data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  kinoscaner_data:
