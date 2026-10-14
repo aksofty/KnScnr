@@ -13,6 +13,7 @@ services:
       LOG_STDOUT: "1"
     volumes:
       - ./data:/app/data
+      - ./prompts:/app/prompts
     logging:
       driver: json-file
       options:

@@ -6,6 +6,7 @@ from agents.hidden_actors.prompts import (
     TEMPLATE_USER_COPYRIGHTER,
 )
 from genapi import GenAPIClient
+from prompts_loader import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +68,15 @@ async def run_copyrighter(
     messages = [
         {
             "role": "system",
-            "content": PROMPT_AGENT_COPYRIGHTER,
+            "content": load_prompt(
+                "hidden_actors/PROMPT_AGENT_COPYRIGHTER", PROMPT_AGENT_COPYRIGHTER
+            ),
         },
         {
             "role": "user",
-            "content": TEMPLATE_USER_COPYRIGHTER.format(
+            "content": load_prompt(
+                "hidden_actors/TEMPLATE_USER_COPYRIGHTER", TEMPLATE_USER_COPYRIGHTER
+            ).format(
                 actor_name=profile["name"],
                 actor_data=_format_actor_data(profile),
                 movies=_format_movies(profile["movies"]),

@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 from database import Database
 from genapi import GenAPIClient
 from agents.hidden_gems.prompts import PROMPT_AGENT_STRATEGIST, TEMPLATE_USER_STRATEGIST
+from prompts_loader import load_prompt
 from tmdb.async_client import AsyncTMDBClient
 from utils import get_candidates, get_genres_string
 
@@ -100,11 +101,15 @@ async def run_strategist(
     messages = [
         {
             "role": "system",
-            "content": PROMPT_AGENT_STRATEGIST,
+            "content": load_prompt(
+                "hidden_gems/PROMPT_AGENT_STRATEGIST", PROMPT_AGENT_STRATEGIST
+            ),
         },
         {
             "role": "user",
-            "content": TEMPLATE_USER_STRATEGIST.format(
+            "content": load_prompt(
+                "hidden_gems/TEMPLATE_USER_STRATEGIST", TEMPLATE_USER_STRATEGIST
+            ).format(
                 current_date=now.strftime("%Y-%m-%d"),
                 day_of_week=DAYS_RU[now.weekday()],
                 current_time=now.strftime("%H:%M"),

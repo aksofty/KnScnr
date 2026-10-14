@@ -4,6 +4,7 @@ from typing import TypedDict
 
 from genapi import GenAPIClient
 from agents.hidden_gems.prompts import PROMPT_AGENT_COPYRIGHTER, TEMPLATE_USER_COPYRIGHTER
+from prompts_loader import load_prompt
 from tmdb.async_client import AsyncTMDBClient
 
 logger = logging.getLogger(__name__)
@@ -89,11 +90,15 @@ async def run_copyrighter(
     messages = [
         {
             "role": "system",
-            "content": PROMPT_AGENT_COPYRIGHTER,
+            "content": load_prompt(
+                "hidden_gems/PROMPT_AGENT_COPYRIGHTER", PROMPT_AGENT_COPYRIGHTER
+            ),
         },
         {
             "role": "user",
-            "content": TEMPLATE_USER_COPYRIGHTER.format(
+            "content": load_prompt(
+                "hidden_gems/TEMPLATE_USER_COPYRIGHTER", TEMPLATE_USER_COPYRIGHTER
+            ).format(
                 title_ru=movie["title"],
                 original_title=movie["original_title"],
                 release_date=movie["release_date"],

@@ -4,6 +4,7 @@ from typing import TypedDict
 from genapi import GenAPIClient
 from agents.hidden_gems.prompts import PROMPT_AGENT_RESEARCHER, TEMPLATE_USER_RESEARCHER
 from agents.hidden_gems.strategist import StrategyResult
+from prompts_loader import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +43,15 @@ async def run_researcher(
     messages = [
         {
             "role": "system",
-            "content": PROMPT_AGENT_RESEARCHER,
+            "content": load_prompt(
+                "hidden_gems/PROMPT_AGENT_RESEARCHER", PROMPT_AGENT_RESEARCHER
+            ),
         },
         {
             "role": "user",
-            "content": TEMPLATE_USER_RESEARCHER.format(
+            "content": load_prompt(
+                "hidden_gems/TEMPLATE_USER_RESEARCHER", TEMPLATE_USER_RESEARCHER
+            ).format(
                 creative_concept=strategy["creative_concept"],
                 reasoning=strategy["reasoning"],
                 candidates_text=strategy["candidates_text"],
