@@ -12,12 +12,9 @@ services:
       LOG_FILE: /app/data/app.log
       LOG_STDOUT: "1"
     volumes:
-      - kinoscaner_data:/app/data
+      - ./data:/app/data
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
-
-volumes:
-  kinoscaner_data:

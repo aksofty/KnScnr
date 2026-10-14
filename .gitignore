@@ -17,6 +17,7 @@ app.log
 *.sqlite
 *.sqlite3
 tenkino.db
+data/
 
 .kilo/
 .kilocode/

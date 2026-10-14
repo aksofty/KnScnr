@@ -56,15 +56,15 @@ docker compose logs -f
 | `ACTORS_DAYS`     | Дни недели запуска `hidden_actors`                      | `mon,thu`                       |
 | `ACTORS_HOUR`/`ACTORS_MINUTE` | Время запуска `hidden_actors`                | `18` / `0`                      |
 
-`TZ_OFFSET` задаёт смещение в часах относительно таймзоны сервера; часовой пояс контейнера
-задаётся переменной `TZ` (по умолчанию `UTC`).
+`TZ_OFFSET` задаёт смещение в часах относительно таймзоны сервера (по умолчанию UTC).
 
 ## Данные и логи
 
-В `docker-compose.yml` используется именованный том `kinoscaner_data`, смонтированный в `/app/data`:
+В `docker-compose.yml` каталог `./data` на хосте смонтирован в `/app/data` контейнера,
+поэтому данные сохраняются при перезапуске и пересборке:
 
-- `/app/data/tenkino.db` — база данных (SQLite),
-- `/app/data/app.log` — файл логов.
+- `./data/tenkino.db` — база данных (SQLite, задаётся через `DB_URL`),
+- `./data/app.log` — файл логов.
 
 Логи также дублируются в stdout, поэтому доступны через `docker compose logs`.
 
@@ -82,8 +82,7 @@ git pull
 docker compose up -d --build
 
 # Резервная копия БД и логов
-docker run --rm -v kinoscaner_kinoscaner_data:/data -v "$PWD":/backup \
-  alpine tar czf /backup/backup-$(date +%F).tar.gz -C /data .
+tar czf backup-$(date +%F).tar.gz -C data .
 ```
 
 ## Локальный запуск без Docker
