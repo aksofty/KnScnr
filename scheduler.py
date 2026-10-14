@@ -12,14 +12,13 @@ from agents.hidden_actors.main import main as run_hidden_actors
 from agents.hidden_gems.main import main as run_hidden_gems
 from logging_config import configure_logging
 
-JITTER_SECONDS = 900
-
 DEFAULTS = {
     "GEMS_HOUR": "10",
     "GEMS_MINS": "0",
     "ACTORS_DAYS": "mon,thu",
     "ACTORS_HOUR": "12",
     "ACTORS_MINS": "0",
+    "JITTER_SECONDS": "900",
 }
 
 
@@ -78,6 +77,7 @@ async def start_scheduler() -> None:
     actors_days = _env("ACTORS_DAYS")
     actors_hour = _int_env("ACTORS_HOUR")
     actors_minute = _minutes_env("ACTORS_MINS")
+    jitter_seconds = _int_env("JITTER_SECONDS")
     timezone = _target_timezone()
 
     scheduler = AsyncIOScheduler()
@@ -89,7 +89,7 @@ async def start_scheduler() -> None:
         hour=gems_hour,
         minute=gems_minute,
         timezone=timezone,
-        jitter=JITTER_SECONDS,
+        jitter=jitter_seconds,
         max_instances=1,
         coalesce=True,
     )
@@ -102,7 +102,7 @@ async def start_scheduler() -> None:
         hour=actors_hour,
         minute=actors_minute,
         timezone=timezone,
-        jitter=JITTER_SECONDS,
+        jitter=jitter_seconds,
         max_instances=1,
         coalesce=True,
     )
