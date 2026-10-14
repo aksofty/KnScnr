@@ -16,10 +16,10 @@ JITTER_SECONDS = 900
 
 DEFAULTS = {
     "GEMS_HOUR": "10",
-    "GEMS_MINUTE": "0",
+    "GEMS_MINS": "0",
     "ACTORS_DAYS": "mon,thu",
     "ACTORS_HOUR": "12",
-    "ACTORS_MINUTE": "0",
+    "ACTORS_MINS": "0",
 }
 
 
@@ -41,6 +41,28 @@ def _int_env(name: str) -> int:
     return int(_env(name))
 
 
+def _minutes_env(name: str) -> str:
+    """Минуты публикаций: список через запятую (например, "0,30")."""
+    raw = os.getenv(name) or DEFAULTS[name]
+
+    minutes = []
+    for token in raw.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        value = int(token)
+        if not 0 <= value <= 59:
+            raise ValueError(
+                f"{name}: минуты должны быть в диапазоне 0..59, получено {value}"
+            )
+        minutes.append(str(value))
+
+    if not minutes:
+        raise ValueError(f"{name}: не задано ни одной минуты")
+
+    return ",".join(minutes)
+
+
 def _target_timezone() -> datetime.tzinfo:
     """Таймзона расписания: локальное серверное время."""
     return datetime.datetime.now().astimezone().tzinfo or datetime.timezone.utc
@@ -52,10 +74,10 @@ async def start_scheduler() -> None:
     load_env()
 
     gems_hour = _int_env("GEMS_HOUR")
-    gems_minute = _int_env("GEMS_MINUTE")
+    gems_minute = _minutes_env("GEMS_MINS")
     actors_days = _env("ACTORS_DAYS")
     actors_hour = _int_env("ACTORS_HOUR")
-    actors_minute = _int_env("ACTORS_MINUTE")
+    actors_minute = _minutes_env("ACTORS_MINS")
     timezone = _target_timezone()
 
     scheduler = AsyncIOScheduler()
@@ -88,12 +110,12 @@ async def start_scheduler() -> None:
 
     logging.info("Планировщик запущен. Время указано в %s.", timezone)
     logging.info(
-        "hidden_gems: ежедневно в %02d:%02d.",
+        "hidden_gems: ежедневно в %02d:%s.",
         gems_hour,
         gems_minute,
     )
     logging.info(
-        "hidden_actors: по %s в %02d:%02d.",
+        "hidden_actors: по %s в %02d:%s.",
         actors_days,
         actors_hour,
         actors_minute,

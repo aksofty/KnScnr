@@ -51,9 +51,9 @@ docker compose logs -f
 | `GENAPI_TOKEN`    | Токен GenAPI (LLM)                                      | `sk-...`                        |
 | `TG_BOT_TOKEN`    | Токен Telegram-бота                                     | `8708697696:AAH...`             |
 | `TG_CHANNEL_ID`   | Username канала без `@`                                 | `ten_kino`                      |
-| `GEMS_HOUR`/`GEMS_MINUTE` | Время запуска `hidden_gems`                      | `18` / `0`                      |
+| `GEMS_HOUR`/`GEMS_MINS` | Час и минуты запуска `hidden_gems` (минуты — список через запятую) | `18` / `0`        |
 | `ACTORS_DAYS`     | Дни недели запуска `hidden_actors`                      | `mon,thu`                       |
-| `ACTORS_HOUR`/`ACTORS_MINUTE` | Время запуска `hidden_actors`                | `18` / `0`                      |
+| `ACTORS_HOUR`/`ACTORS_MINS` | Час и минуты запуска `hidden_actors` (минуты — список через запятую) | `18` / `0,30`   |
 
 Расписание и все метки времени используют серверное (локальное) время контейнера.
 
