@@ -2,7 +2,7 @@ from __future__ import annotations
 import json
 import math
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Any, Sequence
 
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, select, and_, or_, func
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, aliased
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class Snapshot(Base):
     )
 
     captured_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DateTime(timezone=False),
         nullable=False,
         index=True,
     )
@@ -193,7 +193,7 @@ class Post(Base):
     )
 
     published_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+        DateTime(timezone=False),
         nullable=False,
         index=True,
     )
@@ -484,7 +484,7 @@ class Database:
     ) -> Snapshot:
 
         if captured_at is None:
-            captured_at = datetime.now(timezone.utc)
+            captured_at = datetime.now()
 
 
         captured_at = captured_at.replace(
@@ -555,7 +555,7 @@ class Database:
     ) -> Snapshot | None:
 
         if before is None:
-            before = datetime.now(timezone.utc)
+            before = datetime.now()
 
         try:
             async with self.session_factory() as session:
@@ -649,7 +649,7 @@ class Database:
         if cooldown_days < 0:
             raise ValueError("cooldown_days не может быть отрицательным")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
         cooldown_date = now - timedelta(days=cooldown_days)
 
         try:
@@ -870,7 +870,7 @@ class Database:
             )
 
         cooldown_date = (
-            datetime.now(timezone.utc)
+            datetime.now()
             - timedelta(days=cooldown_days)
         )
 
@@ -963,7 +963,7 @@ class Database:
         :param film_id: ID фильма в БД.
         :param signal: Сигнал, по которому был выбран фильм.
         :param published_at: Время публикации.
-            Если не передано — используется текущее UTC-время.
+            Если не передано — используется текущее серверное время.
         """
 
         if film_id <= 0:
@@ -973,7 +973,7 @@ class Database:
             raise ValueError("signal не может быть пустым")
 
         if published_at is None:
-            published_at = datetime.now(timezone.utc)
+            published_at = datetime.now()
 
         try:
             async with self.session_factory() as session:

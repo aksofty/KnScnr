@@ -51,12 +51,11 @@ docker compose logs -f
 | `GENAPI_TOKEN`    | Токен GenAPI (LLM)                                      | `sk-...`                        |
 | `TG_BOT_TOKEN`    | Токен Telegram-бота                                     | `8708697696:AAH...`             |
 | `TG_CHANNEL_ID`   | Username канала без `@`                                 | `ten_kino`                      |
-| `TZ_OFFSET`       | Смещение расписания относительно серверного времени, ч  | `0`                             |
 | `GEMS_HOUR`/`GEMS_MINUTE` | Время запуска `hidden_gems`                      | `18` / `0`                      |
 | `ACTORS_DAYS`     | Дни недели запуска `hidden_actors`                      | `mon,thu`                       |
 | `ACTORS_HOUR`/`ACTORS_MINUTE` | Время запуска `hidden_actors`                | `18` / `0`                      |
 
-`TZ_OFFSET` задаёт смещение в часах относительно таймзоны сервера (по умолчанию UTC).
+Расписание и все метки времени используют серверное (локальное) время контейнера.
 
 ## Данные и логи
 

@@ -12,10 +12,9 @@ from agents.hidden_actors.main import main as run_hidden_actors
 from agents.hidden_gems.main import main as run_hidden_gems
 from logging_config import configure_logging
 
-JITTER_SECONDS = 3600
+JITTER_SECONDS = 900
 
 DEFAULTS = {
-    "TZ_OFFSET": "0",
     "GEMS_HOUR": "10",
     "GEMS_MINUTE": "0",
     "ACTORS_DAYS": "mon,thu",
@@ -42,13 +41,9 @@ def _int_env(name: str) -> int:
     return int(_env(name))
 
 
-def _target_timezone() -> datetime.timezone:
-    """Таймзона расписания: серверное смещение плюс TZ_OFFSET (в часах)."""
-    server_offset = datetime.datetime.now().astimezone().utcoffset()
-    if server_offset is None:
-        server_offset = datetime.timedelta(0)
-    shift = datetime.timedelta(hours=float(_env("TZ_OFFSET")))
-    return datetime.timezone(server_offset + shift)
+def _target_timezone() -> datetime.tzinfo:
+    """Таймзона расписания: локальное серверное время."""
+    return datetime.datetime.now().astimezone().tzinfo or datetime.timezone.utc
 
 
 async def start_scheduler() -> None:
