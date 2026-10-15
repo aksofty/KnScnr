@@ -22,20 +22,21 @@ REQUIRED_ENV_VARS = (
 GENAPI_MODEL = "gpt-4o-mini"
 DEFAULT_DB_URL = "sqlite+aiosqlite:///tenkino.db"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
-WEEK_LIMIT = 7
+TMDB_REQUEST_DELAY_SECONDS = 0.5
+WEEK_LIMIT = 6
 
 
 async def _collect_posters(
     client: AsyncTMDBClient,
     films: list[AgentResearcherMemory],
 ) -> list[str]:
-    """Собрать ссылки на постеры фильмов через TMDB."""
-    movies = await asyncio.gather(
-        *(client.get_movie(film.tmdb_id) for film in films)
-    )
-
+    """Собрать ссылки на постеры фильмов через TMDB с задержкой между запросами."""
     posters = []
-    for movie in movies:
+    for index, film in enumerate(films):
+        if index:
+            await asyncio.sleep(TMDB_REQUEST_DELAY_SECONDS)
+
+        movie = await client.get_movie(film.tmdb_id)
         poster_path = movie.get("poster_path")
         if poster_path:
             posters.append(f"{TMDB_IMAGE_BASE}{poster_path}")
