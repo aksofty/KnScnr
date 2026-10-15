@@ -14,6 +14,7 @@ from agents.week_summary.main import main as run_week_summary
 from logging_config import configure_logging
 
 DEFAULTS = {
+    "GEMS_DAYS": "*",
     "GEMS_HOUR": "10",
     "GEMS_MINS": "0",
     "ACTORS_DAYS": "mon,thu",
@@ -76,6 +77,7 @@ async def start_scheduler() -> None:
     configure_logging()
     load_env()
 
+    gems_days = _env("GEMS_DAYS")
     gems_hour = _int_env("GEMS_HOUR")
     gems_minute = _minutes_env("GEMS_MINS")
     actors_days = _env("ACTORS_DAYS")
@@ -93,6 +95,7 @@ async def start_scheduler() -> None:
         "cron",
         id="hidden_gems",
         name="hidden_gems",
+        day_of_week=gems_days,
         hour=gems_hour,
         minute=gems_minute,
         timezone=timezone,
@@ -130,7 +133,8 @@ async def start_scheduler() -> None:
 
     logging.info("Планировщик запущен. Время указано в %s.", timezone)
     logging.info(
-        "hidden_gems: ежедневно в %02d:%s.",
+        "hidden_gems: по %s в %02d:%s.",
+        gems_days,
         gems_hour,
         gems_minute,
     )

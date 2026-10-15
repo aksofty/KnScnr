@@ -4,13 +4,16 @@ import os
 
 from agents.common import check_env_vars, load_env
 from agents.week_summary.copyrighter import run_copyrighter
-from database import Database
+from database import AgentResearcherMemory, Database
 from genapi import GenAPIClient, GenAPIError
 from logging_config import configure_logging
 from tg_poster import TgPoster
+from tmdb.async_client import AsyncTMDBClient
+from tmdb.exceptions import TMDBError
 
 
 REQUIRED_ENV_VARS = (
+    "TMDB_API_TOKEN",
     "DB_URL",
     "GENAPI_TOKEN",
     "TG_BOT_TOKEN",
@@ -18,20 +21,46 @@ REQUIRED_ENV_VARS = (
 )
 GENAPI_MODEL = "gpt-4o-mini"
 DEFAULT_DB_URL = "sqlite+aiosqlite:///tenkino.db"
+TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 WEEK_LIMIT = 7
 
 
-async def publish_result(text: str | None) -> None:
-    """Опубликовать текстовый пост о фильмах за неделю в Telegram (без фото)."""
+async def _collect_posters(
+    client: AsyncTMDBClient,
+    films: list[AgentResearcherMemory],
+) -> list[str]:
+    """Собрать ссылки на постеры фильмов через TMDB."""
+    movies = await asyncio.gather(
+        *(client.get_movie(film.tmdb_id) for film in films)
+    )
+
+    posters = []
+    for movie in movies:
+        poster_path = movie.get("poster_path")
+        if poster_path:
+            posters.append(f"{TMDB_IMAGE_BASE}{poster_path}")
+
+    return posters
+
+
+async def publish_result(text: str | None, photos: list[str] | None = None) -> None:
+    """Опубликовать пост о фильмах за неделю в Telegram с постерами."""
     if not text:
         logging.info("Telegram-пост не отправлен.")
         return
+
+    photos = photos or []
 
     async with TgPoster(
         bot_token=os.getenv("TG_BOT_TOKEN"),
         channel_id=f"@{os.getenv('TG_CHANNEL_ID')}",
     ) as poster:
-        sent = await poster.send_text(text)
+        if len(photos) > 1:
+            sent = await poster.send_gallery(photos=photos, caption=text)
+        elif photos:
+            sent = await poster.send_photo(photo_path_or_url=photos[0], caption=text)
+        else:
+            sent = await poster.send_text(text)
 
     if sent:
         logging.info("Telegram-пост о фильмах за неделю отправлен.")
@@ -51,6 +80,9 @@ async def _run_agents() -> None:
 
         logging.info("Собрано записей о фильмах: %d", len(films))
 
+        async with AsyncTMDBClient() as client:
+            posters = await _collect_posters(client, films)
+
         async with GenAPIClient(
             api_key=os.getenv("GENAPI_TOKEN"),
             model=GENAPI_MODEL,
@@ -60,7 +92,7 @@ async def _run_agents() -> None:
                 genapi_client=genapi_client,
             )
 
-        await publish_result(text)
+        await publish_result(text, posters)
     finally:
         await db.close()
 
@@ -73,6 +105,8 @@ async def main() -> None:
 
     try:
         await _run_agents()
+    except TMDBError as exc:
+        logging.error("Ошибка TMDB: %s", exc)
     except GenAPIError as exc:
         logging.error("Ошибка GenAPI: %s", exc)
     except Exception:

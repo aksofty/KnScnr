@@ -30,7 +30,7 @@ STRATEGIST_MEMORY_KEYS = (
 )
 
 
-def publish_result(
+async def publish_result(
     result: CopyrighterResult | None,
     strategist_result: StrategyResult,
     researcher_result: ResearcherResult,
