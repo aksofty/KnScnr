@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from agents.hidden_actors.main import main as run_hidden_actors
 from agents.hidden_gems.main import main as run_hidden_gems
+from agents.week_summary.main import main as run_week_summary
 from logging_config import configure_logging
 
 DEFAULTS = {
@@ -18,6 +19,9 @@ DEFAULTS = {
     "ACTORS_DAYS": "mon,thu",
     "ACTORS_HOUR": "12",
     "ACTORS_MINS": "0",
+    "WEEK_DAYS": "sun",
+    "WEEK_HOUR": "12",
+    "WEEK_MINS": "0",
     "JITTER_SECONDS": "900",
 }
 
@@ -77,6 +81,9 @@ async def start_scheduler() -> None:
     actors_days = _env("ACTORS_DAYS")
     actors_hour = _int_env("ACTORS_HOUR")
     actors_minute = _minutes_env("ACTORS_MINS")
+    week_days = _env("WEEK_DAYS")
+    week_hour = _int_env("WEEK_HOUR")
+    week_minute = _minutes_env("WEEK_MINS")
     jitter_seconds = _int_env("JITTER_SECONDS")
     timezone = _target_timezone()
 
@@ -106,6 +113,19 @@ async def start_scheduler() -> None:
         max_instances=1,
         coalesce=True,
     )
+    scheduler.add_job(
+        run_week_summary,
+        "cron",
+        id="week_summary",
+        name="week_summary",
+        day_of_week=week_days,
+        hour=week_hour,
+        minute=week_minute,
+        timezone=timezone,
+        jitter=jitter_seconds,
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.start()
 
     logging.info("Планировщик запущен. Время указано в %s.", timezone)
@@ -119,6 +139,12 @@ async def start_scheduler() -> None:
         actors_days,
         actors_hour,
         actors_minute,
+    )
+    logging.info(
+        "week_summary: по %s в %02d:%s.",
+        week_days,
+        week_hour,
+        week_minute,
     )
 
     stop_event = asyncio.Event()
