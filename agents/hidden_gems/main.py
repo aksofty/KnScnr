@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 
+from agents.common import check_env_vars, load_env
 from agents.hidden_gems.copyrighter import CopyrighterResult, run_copyrighter
 from agents.hidden_gems.researcher import ResearcherResult, run_researcher
 from agents.hidden_gems.strategist import StrategyResult, run_strategist
@@ -29,31 +30,7 @@ STRATEGIST_MEMORY_KEYS = (
 )
 
 
-def load_env() -> None:
-    """Load environment variables from .env when python-dotenv is installed."""
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return
-
-    load_dotenv()
-
-
-def check_env_vars(env_vars: tuple[str, ...]) -> bool:
-    """Log missing environment variables and return whether all are present."""
-    missing_vars = [name for name in env_vars if not os.getenv(name)]
-    if not missing_vars:
-        return True
-
-    logging.error(
-        "Отсутствуют следующие переменные окружения: %s. "
-        "Скопируйте .env.example в .env и укажите их.",
-        ", ".join(missing_vars),
-    )
-    return False
-
-
-async def publish_result(
+def publish_result(
     result: CopyrighterResult | None,
     strategist_result: StrategyResult,
     researcher_result: ResearcherResult,

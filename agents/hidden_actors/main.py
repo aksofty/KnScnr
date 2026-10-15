@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 
+from agents.common import check_env_vars, load_env
 from agents.hidden_actors.copyrighter import (
     ActorMovie,
     ActorProfile,
@@ -28,29 +29,6 @@ DEFAULT_DB_URL = "sqlite+aiosqlite:///tenkino.db"
 ACTOR_COOLDOWN_DAYS = 365
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 OLDEST_MOVIES_LIMIT = 3
-
-
-def load_env() -> None:
-    """Load environment variables from .env when python-dotenv is installed."""
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return
-
-    load_dotenv()
-
-
-def check_env_vars(env_vars: tuple[str, ...]) -> bool:
-    """Log missing environment variables and return whether all are present."""
-    missing_vars = [name for name in env_vars if not os.getenv(name)]
-    if not missing_vars:
-        return True
-
-    logging.error(
-        "Отсутствуют следующие переменные окружения: %s.",
-        ", ".join(missing_vars),
-    )
-    return False
 
 
 def _collect_photos(person: dict, images: dict) -> list[str]:
