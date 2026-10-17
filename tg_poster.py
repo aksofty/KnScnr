@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 
 from aiogram import Bot
 from aiogram.enums import ParseMode
-from aiogram.types import FSInputFile, InputMediaPhoto
+from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaVideo
 
 logger = logging.getLogger(__name__)
 
@@ -74,32 +74,64 @@ class TgPoster:
             ),
         )
 
-    async def send_gallery(self, photos: List[str], caption: Optional[str] = None) -> bool:
+    async def send_video(self, video_path_or_url: str, caption: Optional[str] = None) -> bool:
+        """Отправка видео (по URL или пути к локальному файлу) с подписью."""
+        return await self._send(
+            "видео",
+            self.bot.send_video(
+                chat_id=self.channel_id,
+                video=self._media_source(video_path_or_url),
+                caption=self._truncate_caption(caption),
+                parse_mode=ParseMode.HTML,
+                supports_streaming=True,
+            ),
+        )
+
+    async def send_gallery(
+        self,
+        photos: List[str],
+        caption: Optional[str] = None,
+        video: Optional[str] = None,
+    ) -> bool:
         """
-        Отправка галереи (альбома) из 2-10 фотографий.
+        Отправка галереи (альбома) из 2-10 медиафайлов.
 
         :param photos: Список путей к файлам или URL-ссылок на изображения.
-        :param caption: Подпись к альбому (прикрепляется к первому фото, обрезается до 1024 симв.).
+        :param caption: Подпись к альбому (прикрепляется к первому элементу, обрезается до 1024 симв.).
+        :param video: Путь или URL видео, которое заменяет второе изображение.
         """
-        if not self.MIN_GALLERY_SIZE <= len(photos) <= self.MAX_GALLERY_SIZE:
+        media_items: List[tuple[str, str]] = [("photo", item) for item in photos]
+        if video:
+            if len(media_items) >= 2:
+                media_items[1] = ("video", video)
+            else:
+                media_items.append(("video", video))
+
+        if not self.MIN_GALLERY_SIZE <= len(media_items) <= self.MAX_GALLERY_SIZE:
             logger.error(
-                "Галерея должна содержать от %d до %d фотографий.",
+                "Галерея должна содержать от %d до %d медиафайлов.",
                 self.MIN_GALLERY_SIZE,
                 self.MAX_GALLERY_SIZE,
             )
             return False
 
         safe_caption = self._truncate_caption(caption)
-        media_group: List[InputMediaPhoto] = []
+        caption_options = (
+            {"caption": safe_caption, "parse_mode": ParseMode.HTML}
+            if safe_caption
+            else {}
+        )
+        media_group: List[InputMediaPhoto | InputMediaVideo] = []
 
-        for index, item in enumerate(photos):
+        for index, (media_type, item) in enumerate(media_items):
             media = self._media_source(item)
-            if index == 0 and safe_caption:
+            options = caption_options if index == 0 else {}
+            if media_type == "video":
                 media_group.append(
-                    InputMediaPhoto(media=media, caption=safe_caption, parse_mode=ParseMode.HTML)
+                    InputMediaVideo(media=media, supports_streaming=True, **options)
                 )
             else:
-                media_group.append(InputMediaPhoto(media=media))
+                media_group.append(InputMediaPhoto(media=media, **options))
 
         return await self._send(
             "галереи",

@@ -55,7 +55,7 @@ async def get_candidates(
     client: AsyncTMDBClient,
     db: Database,
     params: dict,
-    page_limit: int = 5,
+    page_limit: int = 10,
     blacklist_limit: int = 100,
 ) -> str:
     published_films = await db.get_agent_researcher_memory(limit=blacklist_limit)

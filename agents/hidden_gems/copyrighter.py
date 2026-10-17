@@ -10,7 +10,7 @@ from tmdb.async_client import AsyncTMDBClient
 logger = logging.getLogger(__name__)
 
 COPYRIGHTER_MODEL = "gemini-3-8-flash"
-MAX_PICS = 4
+MAX_PICS = 5
 MAX_CAST = 5
 MAX_TRAILERS = 1
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
@@ -29,6 +29,7 @@ class CopyrighterResult(TypedDict):
     title: str
     text: str
     pics: list[str]
+    trailer: str | None
 
 
 def _build_pics(movie: dict, images: dict) -> list[str]:
@@ -86,6 +87,7 @@ async def run_copyrighter(
     pics = _build_pics(movie, movie_pics)
     cast = _extract_cast(movie_credits)
     trailers = _extract_trailers(movie_videos)
+    trailer = trailers[0] if trailers else None
 
     messages = [
         {
@@ -109,7 +111,6 @@ async def run_copyrighter(
                 rating=movie["vote_average"],
                 overview=movie["overview"],
                 reasoning=reasoning,
-                trailer=trailers,
                 hook_style=random.choice(HOOK_STYLES),
             ),
         },
@@ -130,4 +131,5 @@ async def run_copyrighter(
         title=movie["title"],
         text=post_text,
         pics=pics[:MAX_PICS],
+        trailer=trailer,
     )

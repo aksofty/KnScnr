@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import os
+import tempfile
 
 from agents.common import check_env_vars, load_env
 from agents.hidden_gems.copyrighter import CopyrighterResult, run_copyrighter
 from agents.hidden_gems.researcher import ResearcherResult, run_researcher
 from agents.hidden_gems.strategist import StrategyResult, run_strategist
+from agents.hidden_gems.video import download_video
 from database import Database
 from genapi import GenAPIClient, GenAPIError
 from logging_config import configure_logging
@@ -30,6 +32,33 @@ STRATEGIST_MEMORY_KEYS = (
 )
 
 
+async def _send_post(
+    poster: TgPoster,
+    photos: list[str],
+    caption: str,
+    trailer: str | None,
+) -> bool:
+    """Отправить пост, скачав трейлер во временный файл."""
+    if trailer:
+        with tempfile.TemporaryDirectory(prefix="trailer_") as directory:
+            video_path = await asyncio.to_thread(download_video, trailer, directory)
+            if video_path:
+                if photos:
+                    sent = await poster.send_gallery(
+                        photos[:4], caption, video=video_path
+                    )
+                else:
+                    sent = await poster.send_video(video_path, caption)
+                if sent:
+                    return True
+
+    if len(photos) > 1:
+        return await poster.send_gallery(photos=photos, caption=caption)
+    if photos:
+        return await poster.send_photo(photo_path_or_url=photos[0], caption=caption)
+    return False
+
+
 async def publish_result(
     result: CopyrighterResult | None,
     strategist_result: StrategyResult,
@@ -48,10 +77,9 @@ async def publish_result(
         bot_token=os.getenv("TG_BOT_TOKEN"),
         channel_id=f"@{os.getenv('TG_CHANNEL_ID')}",
     ) as poster:
-        if len(photos) > 1:
-            await poster.send_gallery(photos=photos, caption=caption)
-        else:
-            await poster.send_photo(photo_path_or_url=photos[0], caption=caption)
+        if not await _send_post(poster, photos, caption, result["trailer"]):
+            logging.info("Telegram-пост не отправлен.")
+            return
 
     await db.add_agent_memory(
         data={key: strategist_result[key] for key in STRATEGIST_MEMORY_KEYS}
