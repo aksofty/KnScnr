@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 
 from aiogram import Bot
 from aiogram.enums import ParseMode
-from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaVideo
+from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaVideo, Message
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +41,19 @@ class TgPoster:
         """Вернуть URL как есть либо обернуть локальный путь в FSInputFile."""
         return path_or_url if path_or_url.startswith("http") else FSInputFile(path_or_url)
 
-    async def _send(self, action: str, coro) -> bool:
+    async def _send(self, action: str, coro) -> Message | List[Message] | None:
         """Выполнить отправку и вернуть результат без проброса исключения."""
         try:
-            await coro
-            return True
+            return await coro
         except Exception as exc:
             logger.error("Ошибка при отправке %s: %s", action, exc)
-            return False
+            return None
 
-    async def send_text(self, text: str, disable_preview: bool = False) -> bool:
+    async def send_text(
+        self,
+        text: str,
+        disable_preview: bool = False,
+    ) -> Message | None:
         """Отправка текстового сообщения."""
         return await self._send(
             "текста",
@@ -62,7 +65,11 @@ class TgPoster:
             ),
         )
 
-    async def send_photo(self, photo_path_or_url: str, caption: Optional[str] = None) -> bool:
+    async def send_photo(
+        self,
+        photo_path_or_url: str,
+        caption: Optional[str] = None,
+    ) -> Message | None:
         """Отправка фото (по URL или пути к локальному файлу) с подписью."""
         return await self._send(
             "фото",
@@ -74,7 +81,11 @@ class TgPoster:
             ),
         )
 
-    async def send_video(self, video_path_or_url: str, caption: Optional[str] = None) -> bool:
+    async def send_video(
+        self,
+        video_path_or_url: str,
+        caption: Optional[str] = None,
+    ) -> Message | None:
         """Отправка видео (по URL или пути к локальному файлу) с подписью."""
         return await self._send(
             "видео",
@@ -92,7 +103,7 @@ class TgPoster:
         photos: List[str],
         caption: Optional[str] = None,
         video: Optional[str] = None,
-    ) -> bool:
+    ) -> List[Message] | None:
         """
         Отправка галереи (альбома) из 2-10 медиафайлов.
 
@@ -113,7 +124,7 @@ class TgPoster:
                 self.MIN_GALLERY_SIZE,
                 self.MAX_GALLERY_SIZE,
             )
-            return False
+            return None
 
         safe_caption = self._truncate_caption(caption)
         caption_options = (

@@ -37,26 +37,30 @@ async def _send_post(
     photos: list[str],
     caption: str,
     trailer: str | None,
-) -> bool:
-    """Отправить пост, скачав трейлер во временный файл."""
+) -> int | None:
+    """Отправить пост, скачав трейлер во временный файл. Вернуть ID сообщения."""
     if trailer:
         with tempfile.TemporaryDirectory(prefix="trailer_") as directory:
             video_path = await asyncio.to_thread(download_video, trailer, directory)
             if video_path:
                 if photos:
-                    sent = await poster.send_gallery(
+                    messages = await poster.send_gallery(
                         photos[:4], caption, video=video_path
                     )
+                    if messages:
+                        return messages[0].message_id
                 else:
-                    sent = await poster.send_video(video_path, caption)
-                if sent:
-                    return True
+                    message = await poster.send_video(video_path, caption)
+                    if message:
+                        return message.message_id
 
     if len(photos) > 1:
-        return await poster.send_gallery(photos=photos, caption=caption)
+        messages = await poster.send_gallery(photos=photos, caption=caption)
+        return messages[0].message_id if messages else None
     if photos:
-        return await poster.send_photo(photo_path_or_url=photos[0], caption=caption)
-    return False
+        message = await poster.send_photo(photo_path_or_url=photos[0], caption=caption)
+        return message.message_id if message else None
+    return None
 
 
 async def publish_result(
@@ -77,7 +81,8 @@ async def publish_result(
         bot_token=os.getenv("TG_BOT_TOKEN"),
         channel_id=f"@{os.getenv('TG_CHANNEL_ID')}",
     ) as poster:
-        if not await _send_post(poster, photos, caption, result["trailer"]):
+        message_id = await _send_post(poster, photos, caption, result["trailer"])
+        if message_id is None:
             logging.info("Telegram-пост не отправлен.")
             return
 
@@ -88,6 +93,7 @@ async def publish_result(
         tmdb_id=researcher_result["tmdb_id"],
         title=researcher_result["title"],
         reasoning=researcher_result["reasoning"],
+        message_id=message_id,
     )
     await db.add_telegram_post(
         tmdb_id=result["tmdb_id"],

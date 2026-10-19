@@ -9,6 +9,7 @@ from sqlalchemy import JSON, DateTime, Integer, String, select, or_, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
+    AsyncConnection,
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
@@ -75,6 +76,7 @@ class AgentResearcherMemory(Base):
     tmdb_id: Mapped[int] = mapped_column(Integer)
     title: Mapped[str] = mapped_column(String)
     reasoning: Mapped[str] = mapped_column(String)
+    message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         default=datetime.now, 
@@ -128,6 +130,7 @@ class Database:
                 await connection.run_sync(
                     Base.metadata.create_all
                 )
+                await self._migrate_sqlite(connection)
 
         except SQLAlchemyError as exc:
             logger.exception("Не удалось инициализировать БД")
@@ -140,6 +143,20 @@ class Database:
             await self.engine.dispose()
         except SQLAlchemyError:
             logger.exception("Ошибка при закрытии БД")
+
+    async def _migrate_sqlite(self, connection: AsyncConnection) -> None:
+        """Добавить новые колонки в существующую SQLite-базу."""
+        if self.engine.dialect.name != "sqlite":
+            return
+
+        result = await connection.exec_driver_sql(
+            "PRAGMA table_info(agent_researcher_memory)"
+        )
+        columns = {row[1] for row in result.fetchall()}
+        if "message_id" not in columns:
+            await connection.exec_driver_sql(
+                "ALTER TABLE agent_researcher_memory ADD COLUMN message_id INTEGER"
+            )
 
     # ========================================================
     # Actors
@@ -342,12 +359,16 @@ class Database:
         tmdb_id: int,
         title: str,
         reasoning: str,
+        message_id: int | None = None,
         created_at: datetime | None = None,
     )-> AgentResearcherMemory:
         """
         Добавить запись в память агента.
 
-        :param data: Данные памяти в виде словаря (сохраняются как JSON).
+        :param tmdb_id: Идентификатор фильма в TMDB.
+        :param title: Название фильма.
+        :param reasoning: Обоснование выбора фильма.
+        :param message_id: ID опубликованного поста в Telegram.
         :param created_at: Время создания записи (нативное время без часового пояса).
             Если не передано — используется текущее локальное/naive время.
         """
@@ -366,6 +387,7 @@ class Database:
                     tmdb_id=tmdb_id,
                     title=title,
                     reasoning=reasoning,
+                    message_id=message_id,
                     created_at=created_at,
                 )
 
