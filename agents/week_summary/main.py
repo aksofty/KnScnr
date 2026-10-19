@@ -75,6 +75,7 @@ async def _run_agents() -> None:
     await db.init()
     try:
         films = await db.get_agent_researcher_memory(limit=WEEK_LIMIT)
+        films.reverse()
         if not films:
             logging.info("Нет записей о фильмах за неделю.")
             return
