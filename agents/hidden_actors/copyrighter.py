@@ -11,14 +11,17 @@ from prompts_loader import load_prompt
 logger = logging.getLogger(__name__)
 
 COPYRIGHTER_MODEL = "gemini-3-8-flash"
-MAX_PICS = 4
+MAX_ACTOR_PICS = 2
+MAX_MOVIE_POSTERS = 3
 
 
 class ActorMovie(TypedDict):
+    tmdb_id: int
     title: str
     release_date: str
     character: str
     overview: str
+    poster: str
 
 
 class ActorProfile(TypedDict):
@@ -95,9 +98,17 @@ async def run_copyrighter(
         logger.warning("Копирайтер вернул пустой ответ для актера %s.", profile["name"])
         return None
 
+    movie_posters = [
+        movie["poster"] for movie in profile["movies"] if movie["poster"]
+    ]
+    pics = (
+        profile["photos"][:MAX_ACTOR_PICS]
+        + movie_posters[:MAX_MOVIE_POSTERS]
+    )
+
     return CopyrighterResult(
         tmdb_id=profile["tmdb_id"],
         name=profile["name"],
         text=post_text,
-        pics=profile["photos"][:MAX_PICS],
+        pics=pics,
     )

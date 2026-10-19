@@ -32,16 +32,16 @@ OLDEST_MOVIES_LIMIT = 3
 
 
 def _collect_photos(person: dict, images: dict) -> list[str]:
-    """Собрать ссылки на фото актера."""
+    """Собрать основное фото актера и последнее дополнительное."""
     photos = []
     profile_path = person.get("profile_path")
     if profile_path:
         photos.append(f"{TMDB_IMAGE_BASE}{profile_path}")
 
-    for image in images.get("profiles", []):
-        file_path = image.get("file_path")
-        if file_path:
-            photos.append(f"{TMDB_IMAGE_BASE}{file_path}")
+    profiles = images.get("profiles") or []
+    last_path = profiles[-1].get("file_path") if profiles else None
+    if last_path and last_path != profile_path:
+        photos.append(f"{TMDB_IMAGE_BASE}{last_path}")
 
     return photos
 
@@ -53,15 +53,38 @@ def _collect_oldest_movies(credits: dict) -> list[ActorMovie]:
     ]
     cast.sort(key=lambda movie: movie["release_date"])
 
-    return [
-        ActorMovie(
-            title=movie.get("title") or movie.get("original_title") or "",
-            release_date=movie["release_date"],
-            character=movie.get("character") or "",
-            overview=movie.get("overview") or "",
+    movies = []
+    for movie in cast[:OLDEST_MOVIES_LIMIT]:
+        poster_path = movie.get("poster_path")
+        movies.append(
+            ActorMovie(
+                tmdb_id=movie.get("id", 0),
+                title=movie.get("title") or movie.get("original_title") or "",
+                release_date=movie["release_date"],
+                character=movie.get("character") or "",
+                overview=movie.get("overview") or "",
+                poster=f"{TMDB_IMAGE_BASE}{poster_path}" if poster_path else "",
+            )
         )
-        for movie in cast[:OLDEST_MOVIES_LIMIT]
-    ]
+    return movies
+
+
+async def _fill_movie_posters(
+    client: AsyncTMDBClient,
+    movies: list[ActorMovie],
+) -> None:
+    """Дозагрузить постеры фильмов, которых не оказалось в credits."""
+    missing = [movie for movie in movies if not movie["poster"] and movie["tmdb_id"]]
+    if not missing:
+        return
+
+    details = await asyncio.gather(
+        *(client.get_movie(movie["tmdb_id"]) for movie in missing)
+    )
+    for movie, detail in zip(missing, details):
+        poster_path = detail.get("poster_path")
+        if poster_path:
+            movie["poster"] = f"{TMDB_IMAGE_BASE}{poster_path}"
 
 
 async def collect_actor_profile(
@@ -75,13 +98,16 @@ async def collect_actor_profile(
         client.get_person_movie_credits(actor.tmdb_id),
     )
 
+    movies = _collect_oldest_movies(credits)
+    await _fill_movie_posters(client, movies)
+
     return ActorProfile(
         tmdb_id=actor.tmdb_id,
         name=actor.actor_name,
         rank=actor.rank,
         main_roles=actor.main_roles_count,
         photos=_collect_photos(person, images),
-        movies=_collect_oldest_movies(credits),
+        movies=movies,
     )
 
 
